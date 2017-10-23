@@ -56,6 +56,8 @@ class TimeLimitedExec(threading.Thread):
         if self.verbose > 0: print self.cmd
         self.p = subprocess.Popen(self.cmd,
                                   preexec_fn=set_limits,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE,
                                   **popen_args)
         self.stdout, self.stderr = self.p.communicate()
 
@@ -223,3 +225,6 @@ class ExtCmd (LimitedCmd):
 
     @property
     def stdout (self): return self.cmd.stdout
+
+    @property
+    def stderr.stderr
