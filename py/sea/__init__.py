@@ -227,4 +227,4 @@ class ExtCmd (LimitedCmd):
     def stdout (self): return self.cmd.stdout
 
     @property
-    def stderr.stderr
+    def stderr (self): return self.cmd.stderr
