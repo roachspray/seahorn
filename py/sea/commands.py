@@ -88,6 +88,10 @@ class Clang(sea.LimitedCmd):
         self.clangCmd = sea.ExtCmd (cmd_name)
 
         if not all (_bc_or_ll_file (f) for f  in args.in_files):
+            cmd_name = which (['clang-mp-3.8', 'clang-3.8', 'clang'])
+            if cmd_name is None: raise IOError ('clang not found')
+            self.clangCmd = sea.ExtCmd (cmd_name)
+
             argv = ['-c', '-emit-llvm', '-D__SEAHORN__']
             if not self.plusplus:
                 ## this is an invalid argument with C++/ObjC++ with clang 3.8
@@ -99,11 +103,10 @@ class Clang(sea.LimitedCmd):
             argv.append ('-m{0}'.format (args.machine))
 
             if args.include_dir is not None:
-                if ':' in args.include_dir:
-                    idirs = ["-I{}".format(x.strip())  \
-                      for x in args.include_dir.split(":") if x.strip() != '']
+               if ':' in args.include_dir:
+                    idirs = ["-I{}".format(x.strip()) for x in args.include_dir.split(":") if x.strip() != '']
                     argv.extend(idirs)
-                else:
+               else:
                     argv.append ('-I' + args.include_dir)
 
             include_dir = os.path.dirname (sys.argv[0])
@@ -761,10 +764,15 @@ class Seahorn(sea.LimitedCmd):
                                         'Constrained Horn Clauses in SMT-LIB format',
                                         allow_extra=True)
         self.solve = solve
+        self.entry_pt = 'main'
 
     @property
     def stdout (self):
         return self.seahornCmd.stdout
+
+    @property
+    def stderr (self):
+        return self.seahornCmd.stderr
 
     def name_out_file (self, in_files, args=None, work_dir=None):
         return _remap_file_name (in_files[0], '.smt2', work_dir)
@@ -810,6 +818,8 @@ class Seahorn(sea.LimitedCmd):
         ap.add_argument ('--crab',
                          help='Enable Crab abstract interpreter',
                          dest='crab', default=False, action='store_true')
+        ap.add_argument ('--entry', help='Specify entry point function',
+                         dest='entry_pt', default='main')
         ap.add_argument ('--bmc',
                          help='Use BMC engine',
                          dest='bmc', default=False, action='store_true')
@@ -822,6 +832,7 @@ class Seahorn(sea.LimitedCmd):
 
         argv = list()
 
+        argv.append('-entry-point={}'.format(args.entry_pt))
         if args.bmc:
             argv.append ('--horn-bmc')
 
@@ -881,8 +892,10 @@ class Seahorn(sea.LimitedCmd):
         # pick out extra seahorn options
         argv.extend (filter (_is_seahorn_opt, extra))
 
-
-        return self.seahornCmd.run (args, argv)
+        rv = self.seahornCmd.run (args, argv)
+        if self.stdout.startswith("unsat") == True:
+            return 0
+        return 1 
 
 class SeahornClp(sea.LimitedCmd):
     def __init__ (self, quiet=False):
